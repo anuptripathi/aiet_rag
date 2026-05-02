@@ -131,10 +131,15 @@ def process():
                     if not chunk.strip():
                         continue
 
+                    parent_id = f"{meta['spec']}_{sec_id}"
                     record = {
                         "id": f"{meta['spec']}_{sec_id}_{i}",
                         "text": chunk,
-                        "metadata": meta
+                        "metadata": {
+                            **meta,
+                            "section_id": sec_id,
+                            "parent_id": parent_id,
+                        },
                     }
 
                     out.write(json.dumps(record) + "\n")
