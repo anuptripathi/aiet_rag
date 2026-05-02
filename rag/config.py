@@ -51,6 +51,14 @@ RERANK_MODEL = os.environ.get(
 USE_RERANKER = os.environ.get("USE_RERANKER", "1") == "1"
 MAX_PARENT_EXPAND = int(os.environ.get("MAX_PARENT_EXPAND", "12"))
 
+# Latency (CPU / small laptops): set RAG_FAST=1 or tune env vars below
+RAG_FAST = os.environ.get("RAG_FAST", "0") == "1"
+RETRIEVE_TOP_K = int(os.environ.get("RETRIEVE_TOP_K", "5"))
+# Cap LLM output tokens (0 = server default). Helps a lot on CPU Ollama.
+RAG_LLM_MAX_TOKENS = int(os.environ.get("RAG_LLM_MAX_TOKENS", "0"))
+# Truncate JSON passed back into the chat after retrieve (characters)
+RAG_TOOL_CONTEXT_CHARS = int(os.environ.get("RAG_TOOL_CONTEXT_CHARS", "24000"))
+
 # --- LLM: OpenAI-compatible API (Ollama, vLLM, LM Studio, etc.) ---
 # Defaults match serve/docker-compose.ollama-cpu.yml (CPU-friendly).
 # Ollama: ``http://localhost:11434`` or ``http://localhost:11434/v1`` (OpenAI routes under /v1).

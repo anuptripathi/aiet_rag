@@ -35,7 +35,6 @@ from rag.config import (
     SPARSE_EMBEDDING_MODEL,
     SPARSE_VECTOR_NAME,
     EMBEDDING_MODEL,
-    USE_RERANKER,
 )
 
 client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
@@ -43,6 +42,10 @@ _encoder: SentenceTransformer | None = None
 _reranker: CrossEncoder | None = None
 _glossary: dict[str, str] | None = None
 _collection_hybrid: bool | None = None
+
+
+def _rag_fast_env() -> bool:
+    return os.environ.get("RAG_FAST", "0") == "1"
 
 
 def get_dense_model() -> SentenceTransformer:
@@ -54,7 +57,7 @@ def get_dense_model() -> SentenceTransformer:
 
 def get_reranker() -> CrossEncoder | None:
     global _reranker
-    if not USE_RERANKER:
+    if _rag_fast_env() or os.environ.get("USE_RERANKER", "1") != "1":
         return None
     if _reranker is None:
         _reranker = CrossEncoder(RERANK_MODEL)
@@ -294,6 +297,11 @@ def retrieve(
     """
     Full retrieval stack. Returns dict with hits and diagnostics.
     """
+    if _rag_fast_env():
+        use_glossary = False
+        expand_parents = False
+        cross_ref_second_pass = False
+
     glossary = load_glossary() if use_glossary else {}
     expanded_q = expand_query_glossary(query, glossary) if use_glossary else query
     dom = classify_query(query)
@@ -315,7 +323,10 @@ def retrieve(
         except ImportError:
             q_sparse = None
 
-    pool = max(RERANK_TOP_N, top_k * 4, PREFETCH_LIMIT // 2)
+    if _rag_fast_env():
+        pool = max(top_k * 3, 12)
+    else:
+        pool = max(RERANK_TOP_N, top_k * 4, PREFETCH_LIMIT // 2)
     hits = _vector_search(q_dense, q_sparse, limit=pool, query_filter=q_filter)
 
     if cross_ref_second_pass and use_glossary and expanded_q.strip() != query.strip():

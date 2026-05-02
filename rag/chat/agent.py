@@ -12,7 +12,15 @@ from typing import Any
 
 import httpx
 
-from rag.config import MAX_TOOL_HOPS, VLLM_BASE_URL, VLLM_MODEL, VLLM_TIMEOUT_S
+from rag.config import (
+    MAX_TOOL_HOPS,
+    RAG_LLM_MAX_TOKENS,
+    RAG_TOOL_CONTEXT_CHARS,
+    RETRIEVE_TOP_K,
+    VLLM_BASE_URL,
+    VLLM_MODEL,
+    VLLM_TIMEOUT_S,
+)
 
 
 def _openai_chat_url_and_ollama_origin() -> tuple[str, str]:
@@ -71,17 +79,24 @@ def _retrieve_dispatch(query: str, **kwargs: Any) -> dict[str, Any]:
 
 def _chat_completion(messages: list[dict[str, str]]) -> str:
     openai_url, ollama_origin = _openai_chat_url_and_ollama_origin()
-    body_openai = {
+    body_openai: dict[str, Any] = {
         "model": VLLM_MODEL,
         "messages": messages,
         "temperature": 0.2,
         "stream": False,
     }
+    if RAG_LLM_MAX_TOKENS > 0:
+        body_openai["max_tokens"] = RAG_LLM_MAX_TOKENS
+
+    ollama_opts: dict[str, Any] = {"temperature": 0.2}
+    if RAG_LLM_MAX_TOKENS > 0:
+        ollama_opts["num_predict"] = RAG_LLM_MAX_TOKENS
+
     body_ollama = {
         "model": VLLM_MODEL,
         "messages": messages,
         "stream": False,
-        "options": {"temperature": 0.2},
+        "options": ollama_opts,
     }
 
     with httpx.Client(timeout=VLLM_TIMEOUT_S) as c:
@@ -144,9 +159,9 @@ def run_agent(user_question: str) -> dict[str, Any]:
             }
 
         rq = m.group(1).strip()
-        result = _retrieve_dispatch(rq, top_k=5)
+        result = _retrieve_dispatch(rq, top_k=RETRIEVE_TOP_K)
         hops += 1
-        tool_msg = json.dumps(result, ensure_ascii=False)[:24000]
+        tool_msg = json.dumps(result, ensure_ascii=False)[:RAG_TOOL_CONTEXT_CHARS]
         messages.append({"role": "assistant", "content": assistant_text})
         messages.append(
             {
@@ -165,7 +180,7 @@ def run_agent(user_question: str) -> dict[str, Any]:
 
 def generate_answer_only(user_question: str, contexts: list[dict[str, Any]]) -> str:
     """Single-shot generation from pre-fetched hits (no tool loop)."""
-    ctx = json.dumps(contexts, ensure_ascii=False)[:24000]
+    ctx = json.dumps(contexts, ensure_ascii=False)[:RAG_TOOL_CONTEXT_CHARS]
     messages = [
         {
             "role": "system",

@@ -41,3 +41,14 @@ docker compose -f serve/docker-compose.ollama-cpu.yml exec ollama ollama pull ll
 python serve/smoke_vllm.py
 python -m rag.chat.tui --single "What is RRC connection setup?"
 ```
+
+## run retrieval faster
+
+```bash
+$env:RAG_LLM_MAX_TOKENS="512"
+$env:MAX_TOOL_HOPS="1"
+$env:RETRIEVE_TOP_K="3"
+python -m rag.chat.tui --fast --single "What is RRC connection setup?"
+
+#Or set USE_RERANKER=0 globally if you do not use --fast.
+```
