@@ -51,10 +51,12 @@ RERANK_MODEL = os.environ.get(
 USE_RERANKER = os.environ.get("USE_RERANKER", "1") == "1"
 MAX_PARENT_EXPAND = int(os.environ.get("MAX_PARENT_EXPAND", "12"))
 
-# --- vLLM / OpenAI-compatible generation ---
-VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:8000/v1").rstrip("/")
-VLLM_MODEL = os.environ.get("VLLM_MODEL", "meta-llama/Llama-3.2-3B-Instruct")
-VLLM_TIMEOUT_S = float(os.environ.get("VLLM_TIMEOUT_S", "120"))
+# --- LLM: OpenAI-compatible API (Ollama, vLLM, LM Studio, etc.) ---
+# Defaults match serve/docker-compose.ollama-cpu.yml (CPU-friendly).
+# Ollama: ``http://localhost:11434`` or ``http://localhost:11434/v1`` (OpenAI routes under /v1).
+VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:11434").rstrip("/")
+VLLM_MODEL = os.environ.get("VLLM_MODEL", "llama3.2:1b")
+VLLM_TIMEOUT_S = float(os.environ.get("VLLM_TIMEOUT_S", "300"))
 
 # --- Agent loop ---
 MAX_TOOL_HOPS = int(os.environ.get("MAX_TOOL_HOPS", "3"))

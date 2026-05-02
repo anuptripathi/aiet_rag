@@ -1,0 +1,30 @@
+# Ollama — small LLM on CPU (fits ~16 GB RAM laptops, no GPU).
+#
+# Uses OpenAI-compatible API at http://localhost:11434/v1
+# Default model in docker-compose is llama3.2:1b (pull once after start).
+#
+# From repo root:
+#   docker compose -f serve/docker-compose.ollama-cpu.yml up -d
+#   docker compose -f serve/docker-compose.ollama-cpu.yml exec ollama ollama pull llama3.2:1b
+#
+# Point this project at Ollama (defaults in rag/config.py match):
+#   VLLM_BASE_URL=http://localhost:11434/v1
+#   VLLM_MODEL=llama3.2:1b
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-rag
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      # One model at a time keeps RAM lower on small machines
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    # Leave headroom for OS + Qdrant + Python/RAG; adjust if Docker still OOMs
+    mem_limit: 10g
+
+volumes:
+  ollama_data:

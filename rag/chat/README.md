@@ -5,9 +5,9 @@ End-to-end **retrieve → generate** using an OpenAI-compatible **vLLM** server.
 ## Prerequisites
 
 1. Qdrant running with your ingested `3gpp_docs` collection (or hybrid collection if you used `HYBRID_INDEX=1`).
-2. vLLM (or any OpenAI-compatible API) listening at `VLLM_BASE_URL` (default `http://localhost:8000/v1`).
+2. An **OpenAI-compatible** chat API: default config targets **Ollama** at `VLLM_BASE_URL` (`http://localhost:11434/v1`) with `llama3.2:1b` — see `serve/README-serve.md` and `serve/docker-compose.ollama-cpu.yml` for CPU / 16 GB RAM setups.
 3. Environment variables as needed:
-   - `VLLM_MODEL` — model id served by vLLM.
+   - `VLLM_MODEL` — must match the tag your server reports (e.g. `llama3.2:1b`).
    - `RAG_RETRIEVE_MODE=local` (default) calls retrieval in-process; use `http` if you run `python -m rag.retrieve.service` separately and set `RETRIEVE_BASE_URL`.
 
 ## Usage

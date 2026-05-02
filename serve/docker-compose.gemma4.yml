@@ -1,0 +1,48 @@
+# Gemma 4 via vLLM OpenAI-compatible API (NVIDIA GPU).
+#
+# Prerequisites:
+# - NVIDIA drivers + Docker with GPU (Linux: nvidia-container-toolkit; Windows: Docker Desktop + WSL2 + NVIDIA CUDA on WSL)
+# - Hugging Face account: accept Gemma license on the model card, then create a token at https://huggingface.co/settings/tokens
+#
+# Usage from repo root:
+#   set HF_TOKEN=hf_xxx   (PowerShell: $env:HF_TOKEN="hf_xxx")
+#   docker compose -f serve/docker-compose.gemma4.yml pull
+#   docker compose -f serve/docker-compose.gemma4.yml up
+#
+# API: http://localhost:8000/v1  (matches rag/config.py VLLM_BASE_URL default)
+#
+# Pick MODEL_ID to fit VRAM (BF16 guidance from vLLM Gemma 4 recipe):
+#   google/gemma-4-E2B-it    ~24 GB
+#   google/gemma-4-E4B-it    ~24 GB
+#   google/gemma-4-26B-A4B-it / google/gemma-4-31B-it  need ~80 GB or multi-GPU — adjust tensor-parallel-size
+
+services:
+  vllm-gemma4:
+    image: vllm/vllm-openai:latest
+    ipc: host
+    shm_size: "16gb"
+    ports:
+      - "8000:8000"
+    environment:
+      HF_TOKEN: ${HF_TOKEN}
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    command:
+      - "--model"
+      - "${MODEL_ID:-google/gemma-4-E4B-it}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--max-model-len"
+      - "${MAX_MODEL_LEN:-8192}"
+      - "--gpu-memory-utilization"
+      - "0.90"
+      # Text-only RAG: skip vision/audio memory (see vLLM Gemma 4 docs)
+      - "--limit-mm-per-prompt"
+      - "image=0,audio=0"
+    # Requires Docker Compose v2 + NVIDIA Container Toolkit (Linux) or Docker Desktop WSL2 GPU
+    gpus: all
+
+volumes:
+  huggingface_cache:

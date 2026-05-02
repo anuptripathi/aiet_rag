@@ -14,6 +14,39 @@ import httpx
 
 from rag.config import MAX_TOOL_HOPS, VLLM_BASE_URL, VLLM_MODEL, VLLM_TIMEOUT_S
 
+
+def _openai_chat_url_and_ollama_origin() -> tuple[str, str]:
+    """
+    Normalize OpenAI-compatible URL and Ollama HTTP root for native /api/chat fallback.
+
+    VLLM_BASE_URL may be ``http://host:11434`` or ``http://host:11434/v1``.
+    OpenAI chat completions live at ``.../v1/chat/completions``.
+    """
+    b = VLLM_BASE_URL.rstrip("/")
+    if b.endswith("/v1"):
+        openai_root = b
+        ollama_origin = b[:-3]
+    else:
+        openai_root = f"{b}/v1"
+        ollama_origin = b
+    return f"{openai_root}/chat/completions", ollama_origin.rstrip("/")
+
+
+def _prefer_ollama_native_api() -> bool:
+    """
+    Use only POST .../api/chat (no OpenAI shim).
+
+    Default is **False**: use OpenAI-compatible ``POST .../v1/chat/completions`` first (Ollama
+    exposes this at ``http://localhost:11434/v1/...`` alongside ``GET /v1/models``).
+
+    Set ``OLLAMA_USE_NATIVE=1`` if your server has no ``/v1`` routes; on 404 we still fall back
+    to ``/api/chat`` when the URL contains port 11434.
+    """
+    explicit = os.environ.get("OLLAMA_USE_NATIVE", "").strip().lower()
+    if explicit in ("1", "true", "yes"):
+        return True
+    return False
+
 SYSTEM_PROMPT = (
     "You are a 3GPP / 5G technical assistant. Answer using the corpus retrieved for you.\n"
     "When you need specification text, request retrieval by outputting these tags exactly:\n"
@@ -37,15 +70,37 @@ def _retrieve_dispatch(query: str, **kwargs: Any) -> dict[str, Any]:
 
 
 def _chat_completion(messages: list[dict[str, str]]) -> str:
-    url = f"{VLLM_BASE_URL}/chat/completions"
-    body = {
+    openai_url, ollama_origin = _openai_chat_url_and_ollama_origin()
+    body_openai = {
         "model": VLLM_MODEL,
         "messages": messages,
         "temperature": 0.2,
         "stream": False,
     }
+    body_ollama = {
+        "model": VLLM_MODEL,
+        "messages": messages,
+        "stream": False,
+        "options": {"temperature": 0.2},
+    }
+
     with httpx.Client(timeout=VLLM_TIMEOUT_S) as c:
-        r = c.post(url, json=body)
+        if _prefer_ollama_native_api():
+            r = c.post(f"{ollama_origin}/api/chat", json=body_ollama)
+            r.raise_for_status()
+            data = r.json()
+            return (data.get("message") or {}).get("content") or ""
+
+        r = c.post(openai_url, json=body_openai)
+        if r.status_code == 404 and (
+            "11434" in openai_url
+            or os.environ.get("OLLAMA_FALLBACK_NATIVE", "").lower() in ("1", "true", "yes")
+        ):
+            r2 = c.post(f"{ollama_origin}/api/chat", json=body_ollama)
+            r2.raise_for_status()
+            data = r2.json()
+            return (data.get("message") or {}).get("content") or ""
+
         r.raise_for_status()
         data = r.json()
     return data["choices"][0]["message"]["content"] or ""

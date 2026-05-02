@@ -4,6 +4,8 @@
 .venv\Scripts\activate
 ```
 
+## basic useful command
+
 ```bash
 # -m tells Python → “this is a package module”
 # Now rag is recognized as a package
@@ -27,4 +29,15 @@ python .\test\data-tail.py -n 5
 python .\test\data-tail.py --collection 3gpp_docs -n 5
 #with batch (faster if collection is large)
 python .\test\data-tail.py -n 5 --batch 1000
+```
+
+## required isntallations
+
+```bash
+#create ollma container
+docker compose -f serve/docker-compose.ollama-cpu.yml up -d
+# take model pull in the above container.
+docker compose -f serve/docker-compose.ollama-cpu.yml exec ollama ollama pull llama3.2:1b
+python serve/smoke_vllm.py
+python -m rag.chat.tui --single "What is RRC connection setup?"
 ```
