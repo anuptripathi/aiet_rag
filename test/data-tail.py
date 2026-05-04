@@ -40,24 +40,23 @@ def main():
         if next_offset is None:
             break
 
+    def _fmt_val(v, max_len: int = 220) -> str:
+        s = repr(v) if isinstance(v, (dict, list)) else str(v)
+        if len(s) > max_len:
+            return s[: max_len - 1] + "…"
+        return s
+
     print(f"scanned={scanned} tail={len(tail)}")
     for i, p in enumerate(tail, start=max(scanned - len(tail) + 1, 1)):
         payload = p.payload or {}
         text = payload.get("text") or ""
         text_preview = (text[:160] + "…") if len(text) > 160 else text
-        chunk_id = payload.get("chunk_id") or payload.get("id")
-        spec = payload.get("spec")
-        domain = payload.get("domain")
-        path = payload.get("path")
 
         print("-" * 80)
         print(f"#{i} point_id={p.id}")
-        if chunk_id:
-            print(f"  chunk_id={chunk_id}")
-        if spec or domain:
-            print(f"  spec={spec} domain={domain}")
-        if path:
-            print(f"  path={path}")
+        # Print every payload field except body text (shown last as preview).
+        for key in sorted(k for k in payload if k != "text"):
+            print(f"  {key}={_fmt_val(payload[key])}")
         if text_preview:
             print(f"  text={text_preview}")
 

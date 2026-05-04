@@ -51,4 +51,10 @@ $env:RETRIEVE_TOP_K="3"
 python -m rag.chat.tui --fast --single "What is RRC connection setup?"
 
 #Or set USE_RERANKER=0 globally if you do not use --fast.
+
+#run chunker with different values for no. of chunk words and overlap words
+$env:CHUNK_TARGET_WORDS="180"; $env:CHUNK_OVERLAP_WORDS="36"; python -m rag.ingest.chunker
+
+#run indexer to truncate existing collection.
+$env:QDRANT_RECREATE="1"; $env:HYBRID_INDEX="1"; python -m rag.ingest.indexer
 ```
