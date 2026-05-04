@@ -15,6 +15,7 @@ from qdrant_client.http import models as qm
 from rag.config import (
     CHUNKS_JSONL,
     COLLECTION_NAME,
+    QDRANT_RECREATE,
     DENSE_VECTOR_NAME,
     HYBRID_INDEX,
     QDRANT_HOST,
@@ -204,5 +205,5 @@ def index():
 
 
 if __name__ == "__main__":
-    ensure_collection(recreate=os.getenv("QDRANT_RECREATE", "0") == "1")
+    ensure_collection(recreate=QDRANT_RECREATE)
     index()

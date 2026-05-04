@@ -17,7 +17,7 @@
 # touch rag/ingest/__init__.py
 
 python -m rag.ingest.chunker
-python -m rag/ingest/indexer.py
+python -m rag.ingest.indexer
 
 # see count in db.
 python .\test\data-verify.py

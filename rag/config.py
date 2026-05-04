@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
 # --- Corpus paths (ingest) ---
-DATA_DIR = os.path.join(PROJECT_ROOT, "TSpec-LLM", "3GPP-clean")
+DATA_DIR = os.path.join(PROJECT_ROOT, "TSpec-LLM", "3GPP-subset")
 CHUNKS_JSONL = os.path.join(BASE_DIR, "data", "chunks.jsonl")
 CLAUSES_JSONL = os.path.join(BASE_DIR, "data", "clauses.jsonl")
 
@@ -22,6 +22,8 @@ QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "3gpp_docs")
 
+# When True, indexer will recreate the collection.
+QDRANT_RECREATE = os.environ.get("QDRANT_RECREATE", "0") == "1"
 # When True, indexer creates dense + sparse (BM25) named vectors; requires re-ingest.
 HYBRID_INDEX = os.environ.get("HYBRID_INDEX", "0") == "1"
 DENSE_VECTOR_NAME = "dense"
