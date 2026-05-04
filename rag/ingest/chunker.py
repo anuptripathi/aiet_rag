@@ -1,13 +1,19 @@
+import json
 import os
 import re
-import json
 from tqdm import tqdm
-from rag.config import DATA_DIR, CHUNKS_JSONL
+
+from rag.config import (
+    CHUNK_OVERLAP_WORDS,
+    CHUNK_TARGET_WORDS,
+    CHUNKS_JSONL,
+    DATA_DIR,
+)
+
+_HEADING_MD = re.compile(r"^#{1,6}\s+(.+)$")
+_CLAUSE_LINE = re.compile(r"^(\d+(?:\.\d+)+)(?:\s+(.*))?$")
 
 
-# ---------------------------
-# Read all markdown files
-# ---------------------------
 def read_md_files(root_dir):
     for root, _, files in os.walk(root_dir):
         for file in files:
@@ -15,21 +21,13 @@ def read_md_files(root_dir):
                 yield os.path.join(root, file)
 
 
-# ---------------------------
-# Split into sections (telecom-aware)
-# ---------------------------
 def split_by_sections(text):
     if not text or not isinstance(text, str):
         return []
 
-    # Split on:
-    # - Markdown headings (#, ##, ###)
-    # - Clause numbers like 1.1, 2.3.4
-    pattern = r'\n(?=(?:#+\s)|(?:\d+\.\d+(?:\.\d+)*))'
-
+    pattern = r"\n(?=(?:#+\s)|(?:\d+\.\d+(?:\.\d+)*))"
     sections = re.split(pattern, text)
 
-    # Clean sections
     cleaned = []
     for sec in sections:
         if sec and isinstance(sec, str):
@@ -40,32 +38,77 @@ def split_by_sections(text):
     return cleaned
 
 
-# ---------------------------
-# Chunk text safely
-# ---------------------------
-def chunk_text(text, max_len=500):
+def split_heading_body(section: str) -> tuple[str, str, str | None]:
+    """
+    Returns (section_heading, body, embed_prefix).
+
+    section_heading: stored in metadata; may be the full first line for clauses.
+    embed_prefix: short text prepended to every chunk for retrieval; if None,
+    use section_heading when non-empty. For a clause whose body is the tail of
+    the same line, embed_prefix is the clause id only to avoid duplicating the title.
+    """
+    section = section.strip()
+    if not section:
+        return "", "", None
+
+    lines = section.split("\n", 1)
+    first = lines[0].strip()
+    rest = lines[1].strip() if len(lines) > 1 else ""
+
+    m = _HEADING_MD.match(first)
+    if m:
+        heading = m.group(1).strip()
+        if rest:
+            return heading, rest, None
+        return "", section, None
+
+    m2 = _CLAUSE_LINE.match(first)
+    if m2:
+        tail = (m2.group(2) or "").strip()
+        clause_id = m2.group(1).strip()
+        if rest:
+            return first.strip(), rest, None
+        if tail:
+            return first.strip(), tail, clause_id
+
+    return "", section, None
+
+
+def chunk_text_words(
+    text: str,
+    max_words: int,
+    overlap_words: int,
+) -> list[str]:
+    """Split into overlapping word windows (whitespace-delimited tokens)."""
     if not text or not isinstance(text, str):
         return []
 
-    chunks = []
+    words = re.findall(r"\S+", text)
+    if not words:
+        return []
 
-    for i in range(0, len(text), max_len):
-        chunk = text[i:i + max_len]
+    max_words = max(32, max_words)
+    overlap_words = min(max(0, overlap_words), max_words - 1)
+    step = max(1, max_words - overlap_words)
 
-        if chunk and chunk.strip():
-            chunks.append(chunk.strip())
+    if len(words) <= max_words:
+        return [" ".join(words)]
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(words):
+        piece = words[start : start + max_words]
+        if piece:
+            chunks.append(" ".join(piece))
+        start += step
 
     return chunks
 
 
-# ---------------------------
-# Extract metadata (telecom-specific)
-# ---------------------------
 def extract_metadata(filepath):
     filename = os.path.basename(filepath)
     spec = filename.replace(".md", "")
 
-    # Domain classification (basic for now)
     if spec.startswith("38"):
         domain = "RAN"
     elif spec.startswith("23"):
@@ -78,19 +121,20 @@ def extract_metadata(filepath):
     return {
         "spec": spec,
         "domain": domain,
-        "path": filepath
+        "path": filepath,
     }
 
 
-# ---------------------------
-# Main processing pipeline
-# ---------------------------
 def process():
     os.makedirs(os.path.dirname(CHUNKS_JSONL), exist_ok=True)
 
     files = list(read_md_files(DATA_DIR))
 
     print(f"📂 Found {len(files)} markdown files")
+    print(
+        f"⚙️  chunk words={CHUNK_TARGET_WORDS} overlap={CHUNK_OVERLAP_WORDS} "
+        f"(override with CHUNK_TARGET_WORDS / CHUNK_OVERLAP_WORDS)"
+    )
 
     total_chunks = 0
 
@@ -111,7 +155,6 @@ def process():
             sections = split_by_sections(text)
 
             if not sections:
-                # fallback: treat whole doc as one section
                 sections = [text]
 
             meta = extract_metadata(filepath)
@@ -121,24 +164,37 @@ def process():
                 if not section or not isinstance(section, str):
                     continue
 
-                chunks = chunk_text(section)
-
-                if not chunks:
+                heading, body, embed_prefix = split_heading_body(section)
+                if not body:
                     continue
 
-                for i, chunk in enumerate(chunks):
+                pieces = chunk_text_words(
+                    body,
+                    CHUNK_TARGET_WORDS,
+                    CHUNK_OVERLAP_WORDS,
+                )
 
-                    if not chunk.strip():
+                if not pieces:
+                    continue
+
+                parent_id = f"{meta['spec']}_{sec_id}"
+                prefix_label = embed_prefix if embed_prefix is not None else heading
+                prefix = f"{prefix_label}\n\n" if prefix_label else ""
+
+                for i, piece in enumerate(pieces):
+
+                    chunk_text = prefix + piece if prefix else piece
+                    if not chunk_text.strip():
                         continue
 
-                    parent_id = f"{meta['spec']}_{sec_id}"
                     record = {
                         "id": f"{meta['spec']}_{sec_id}_{i}",
-                        "text": chunk,
+                        "text": chunk_text,
                         "metadata": {
                             **meta,
                             "section_id": sec_id,
                             "parent_id": parent_id,
+                            **({"section_heading": heading} if heading else {}),
                         },
                     }
 
@@ -150,8 +206,5 @@ def process():
     print(f"📁 Output file: {CHUNKS_JSONL}")
 
 
-# ---------------------------
-# Entry point
-# ---------------------------
 if __name__ == "__main__":
     process()

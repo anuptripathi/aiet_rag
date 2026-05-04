@@ -15,11 +15,12 @@ from qdrant_client.http import models as qm
 from rag.config import (
     CHUNKS_JSONL,
     COLLECTION_NAME,
-    QDRANT_RECREATE,
     DENSE_VECTOR_NAME,
+    FORCE_CHUNK_UPSERT,
     HYBRID_INDEX,
     QDRANT_HOST,
     QDRANT_PORT,
+    QDRANT_RECREATE,
     SPARSE_EMBEDDING_MODEL,
     SPARSE_VECTOR_NAME,
     VECTOR_SIZE,
@@ -124,15 +125,18 @@ def _flush_batch(batch):
 
     ids = [_point_id(rec["id"]) for rec in batch]
 
-    existing = client.retrieve(
-        collection_name=COLLECTION_NAME,
-        ids=ids,
-        with_payload=False,
-        with_vectors=False,
-    )
-    existing_ids = {str(p.id) for p in existing}
+    if FORCE_CHUNK_UPSERT:
+        to_insert = batch
+    else:
+        existing = client.retrieve(
+            collection_name=COLLECTION_NAME,
+            ids=ids,
+            with_payload=False,
+            with_vectors=False,
+        )
+        existing_ids = {str(p.id) for p in existing}
+        to_insert = [rec for rec in batch if _point_id(rec["id"]) not in existing_ids]
 
-    to_insert = [rec for rec in batch if _point_id(rec["id"]) not in existing_ids]
     if not to_insert:
         return 0, len(batch)
 
@@ -182,6 +186,9 @@ def index():
             raise ImportError(
                 "HYBRID_INDEX=1 requires `pip install fastembed` for BM25 sparse vectors."
             ) from e
+
+    if FORCE_CHUNK_UPSERT:
+        print("⚙️  FORCE_CHUNK_UPSERT=1: upserting all rows (re-embed even if ids exist).")
 
     batch = []
     inserted = 0

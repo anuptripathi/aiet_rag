@@ -10,6 +10,10 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "TSpec-LLM", "3GPP-subset")
 CHUNKS_JSONL = os.path.join(BASE_DIR, "data", "chunks.jsonl")
 CLAUSES_JSONL = os.path.join(BASE_DIR, "data", "clauses.jsonl")
 
+# Chunking (ingest/chunker): word windows with overlap; ~200 words ≈ typical embedding budget
+CHUNK_TARGET_WORDS = int(os.environ.get("CHUNK_TARGET_WORDS", "200"))
+CHUNK_OVERLAP_WORDS = int(os.environ.get("CHUNK_OVERLAP_WORDS", "40"))
+
 # TR 21.905 glossary source (place file here or override via env)
 TR_21905_PATH = os.environ.get(
     "TR_21905_PATH",
@@ -24,6 +28,8 @@ COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "3gpp_docs")
 
 # When True, indexer will recreate the collection.
 QDRANT_RECREATE = os.environ.get("QDRANT_RECREATE", "0") == "1"
+# When True, indexer upserts every chunk (re-embeds) even if point id already exists.
+FORCE_CHUNK_UPSERT = os.environ.get("FORCE_CHUNK_UPSERT", "0") == "1"
 # When True, indexer creates dense + sparse (BM25) named vectors; requires re-ingest.
 HYBRID_INDEX = os.environ.get("HYBRID_INDEX", "0") == "1"
 DENSE_VECTOR_NAME = "dense"
