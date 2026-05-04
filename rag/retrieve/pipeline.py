@@ -73,9 +73,13 @@ def load_glossary() -> dict[str, str]:
         return _glossary
     with open(GLOSSARY_JSON, "r", encoding="utf-8") as f:
         data = json.load(f)
-    g = data.get("glossary") or data
+    g = data.get("glossary")
     if not isinstance(g, dict):
         g = {}
+    if not g:
+        abbr = data.get("abbreviations")
+        if isinstance(abbr, dict):
+            g = abbr
     _glossary = {str(k): str(v) for k, v in g.items()}
     return _glossary
 
