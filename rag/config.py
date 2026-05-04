@@ -15,7 +15,7 @@ TR_21905_PATH = os.environ.get(
     "TR_21905_PATH",
     os.path.join(PROJECT_ROOT, "data", "tr_21_905.txt"),
 )
-GLOSSARY_JSON = os.path.join(BASE_DIR, "data", "glossary.json")
+GLOSSARY_JSON = os.path.join(PROJECT_ROOT, "data", "glossary.json")
 
 # --- Qdrant ---
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
