@@ -19,6 +19,15 @@
 python -m rag.ingest.chunker
 python -m rag.ingest.indexer
 
+## More customized commands
+#run chunker with different values for no. of chunk words and overlap words
+$env:CHUNK_TARGET_WORDS="180";
+$env:CHUNK_OVERLAP_WORDS="36";
+python -m rag.ingest.chunker
+
+$env:QDRANT_RECREATE = "1" # or '0'
+python -m rag.ingest.indexer
+
 # see count in db.
 python .\test\data-verify.py
 
@@ -52,9 +61,11 @@ python -m rag.chat.tui --fast --single "What is RRC connection setup?"
 
 #Or set USE_RERANKER=0 globally if you do not use --fast.
 
-#run chunker with different values for no. of chunk words and overlap words
-$env:CHUNK_TARGET_WORDS="180"; $env:CHUNK_OVERLAP_WORDS="36"; python -m rag.ingest.chunker
+```
 
+## Split chunk if required (not so useful)
+
+```bash
 # you can split chunks
 python -m rag.ingest.chunk_splitter
 # custom:
@@ -79,7 +90,11 @@ $env:FORCE_CHUNK_UPSERT= "0"
 $env:CHUNKS_JSONL = "$root\chunks2.jsonl"
 python -m rag.ingest.indexer
 # … repeat for chunks3, …
+```
 
+## other useful commands
+
+```bash
 #clear .env on windows
 Remove-Item Env:CHUNKS_JSONL
 Remove-Item Env:QDRANT_RECREATE

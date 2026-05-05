@@ -42,9 +42,9 @@ DENSE_VECTOR_NAME = "dense"
 SPARSE_VECTOR_NAME = "bm25"
 
 # --- Dense embeddings (BGE) ---
-EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5") #BAAI/bge-base-en-v1.5
 # Must match the embedding model output dimension (e.g. bge-base=768, bge-small=384).
-VECTOR_SIZE = int(os.environ.get("VECTOR_SIZE", "768"))
+VECTOR_SIZE = int(os.environ.get("VECTOR_SIZE", "384")) #768
 
 # --- Sparse / BM25 (FastEmbed, must match hybrid indexer) ---
 SPARSE_EMBEDDING_MODEL = os.environ.get("SPARSE_EMBEDDING_MODEL", "Qdrant/bm25")
