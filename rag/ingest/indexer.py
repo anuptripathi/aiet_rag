@@ -13,8 +13,8 @@ from qdrant_client.models import (
 from qdrant_client.http import models as qm
 
 from rag.config import (
-    CHUNKS_JSONL,
     COLLECTION_NAME,
+    INGEST_CHUNKS_JSONL,
     DENSE_VECTOR_NAME,
     FORCE_CHUNK_UPSERT,
     HYBRID_INDEX,
@@ -110,7 +110,7 @@ def ensure_collection(recreate: bool = False):
 
 
 def load_chunks():
-    with open(CHUNKS_JSONL, "r", encoding="utf-8") as f:
+    with open(INGEST_CHUNKS_JSONL, "r", encoding="utf-8") as f:
         for line in f:
             yield json.loads(line)
 
@@ -189,6 +189,10 @@ def index():
 
     if FORCE_CHUNK_UPSERT:
         print("⚙️  FORCE_CHUNK_UPSERT=1: upserting all rows (re-embed even if ids exist).")
+
+    if not os.path.isfile(INGEST_CHUNKS_JSONL):
+        raise FileNotFoundError(f"Ingest file not found: {INGEST_CHUNKS_JSONL}")
+    print(f"📂 Ingesting from {INGEST_CHUNKS_JSONL}")
 
     batch = []
     inserted = 0

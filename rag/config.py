@@ -7,7 +7,13 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
 # --- Corpus paths (ingest) ---
 DATA_DIR = os.path.join(PROJECT_ROOT, "TSpec-LLM", "3GPP-subset")
-CHUNKS_JSONL = os.path.join(BASE_DIR, "data", "chunks.jsonl")
+_DEFAULT_CHUNKS_JSONL = os.path.join(BASE_DIR, "data", "chunks.jsonl")
+# Written by chunker; default file for indexer when env unset.
+CHUNKS_JSONL = os.path.abspath(_DEFAULT_CHUNKS_JSONL)
+# Indexer input only: set CHUNKS_JSONL env to a shard (chunk_splitter output).
+INGEST_CHUNKS_JSONL = os.path.abspath(
+    os.environ.get("CHUNKS_JSONL", CHUNKS_JSONL)
+)
 CLAUSES_JSONL = os.path.join(BASE_DIR, "data", "clauses.jsonl")
 
 # Chunking (ingest/chunker): word windows with overlap; ~200 words ≈ typical embedding budget
