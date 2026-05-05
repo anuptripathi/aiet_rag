@@ -30,7 +30,7 @@ GLOSSARY_JSON = os.path.join(PROJECT_ROOT, "data", "glossary.json")
 # --- Qdrant ---
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
-COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "3gpp_docs")
+COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "3gpp_docs2")
 
 # When True, indexer will recreate the collection.
 QDRANT_RECREATE = os.environ.get("QDRANT_RECREATE", "0") == "1"
@@ -43,7 +43,8 @@ SPARSE_VECTOR_NAME = "bm25"
 
 # --- Dense embeddings (BGE) ---
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
-VECTOR_SIZE = 768
+# Must match the embedding model output dimension (e.g. bge-base=768, bge-small=384).
+VECTOR_SIZE = int(os.environ.get("VECTOR_SIZE", "768"))
 
 # --- Sparse / BM25 (FastEmbed, must match hybrid indexer) ---
 SPARSE_EMBEDDING_MODEL = os.environ.get("SPARSE_EMBEDDING_MODEL", "Qdrant/bm25")

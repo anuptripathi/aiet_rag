@@ -10,7 +10,7 @@ def main():
     )
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=6333)
-    parser.add_argument("--collection", default="3gpp_docs")
+    parser.add_argument("--collection", default="3gpp_docs2")
     parser.add_argument("-n", type=int, default=5, help="Number of records to print")
     parser.add_argument("--batch", type=int, default=256, help="Scroll batch size")
     args = parser.parse_args()

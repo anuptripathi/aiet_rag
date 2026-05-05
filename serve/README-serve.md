@@ -43,7 +43,7 @@ python -m rag.chat.tui --single "What is RRC?"
 docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant:latest
 ```
 
-Ingest your corpus (`chunks.jsonl` → indexer). Default collection: `3gpp_docs`.
+Ingest your corpus (`chunks.jsonl` → indexer). Default collection: `3gpp_docs2`.
 
 ```bash
 python serve/smoke_qdrant.py

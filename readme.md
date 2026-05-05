@@ -26,7 +26,7 @@ python .\test\data-verify.py
 #simple
 python .\test\data-tail.py -n 5
 #with collection name
-python .\test\data-tail.py --collection 3gpp_docs -n 5
+python .\test\data-tail.py --collection 3gpp_docs2 -n 5
 #with batch (faster if collection is large)
 python .\test\data-tail.py -n 5 --batch 1000
 ```

@@ -1,6 +1,8 @@
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer("BAAI/bge-base-en-v1.5")
+from rag.config import EMBEDDING_MODEL
+
+model = SentenceTransformer(EMBEDDING_MODEL)
 
 def embed_batch(texts):
     return model.encode(texts, normalize_embeddings=True).tolist()
