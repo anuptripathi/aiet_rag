@@ -60,6 +60,11 @@ $env:RETRIEVE_TOP_K="3"
 python -m rag.chat.tui --fast --single "What is RRC connection setup?"
 
 #Or set USE_RERANKER=0 globally if you do not use --fast.
+#with fast enabled, glossary, parents, ref search is off
+if _rag_fast_env():
+    use_glossary = False
+    expand_parents = False
+    cross_ref_second_pass = False
 
 ```
 
