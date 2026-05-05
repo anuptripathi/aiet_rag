@@ -88,4 +88,8 @@ Remove-Item Env:FORCE_CHUNK_UPSERT
 
 #check what's in .env
 Get-ChildItem Env:CHUNKS_JSONL,Env:QDRANT_RECREATE,Env:HYBRID_INDEX,Env:FORCE_CHUNK_UPSERT
+
+# curl command windos for delete or get collectoin
+Invoke-RestMethod -Method Delete -Uri "http://localhost:6333/collections/3gpp_docs"
+Invoke-RestMethod -Method Get -Uri "http://localhost:6333/collections"
 ```
