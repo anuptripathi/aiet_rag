@@ -68,6 +68,21 @@ if _rag_fast_env():
 
 ```
 
+## run evaluation
+
+```bash
+python -m test.mcq_eval --input "c:\Users\Anup Tripathi\Downloads\Sampled_3GPP_TR_Questions.json" --fast
+
+# Run only first 20
+python -m test.mcq_eval --input "c:\Users\Anup Tripathi\Downloads\Sampled_3GPP_TR_Questions.json" --fast --limit 20
+
+# Add a small delay between questions
+python -m test.mcq_eval --input "c:\Users\Anup Tripathi\Downloads\Sampled_3GPP_TR_Questions.json" --fast --sleep 0.2
+
+# Write output somewhere else
+python -m test.mcq_eval --input "c:\Users\Anup Tripathi\Downloads\Sampled_3GPP_TR_Questions.json" --fast --out "..\\rag\\data\\mcq_results.jsonl" --limit 2
+```
+
 ## Split chunk if required (not so useful)
 
 ```bash
