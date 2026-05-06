@@ -2,4 +2,4 @@
 TSpec-LLM/
 rag/data/
 test/mcq_results.jsonl
-mcq_results.jsonl
+mcq_results.*

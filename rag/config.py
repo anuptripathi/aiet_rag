@@ -83,3 +83,6 @@ VLLM_TIMEOUT_S = float(os.environ.get("VLLM_TIMEOUT_S", "300"))
 
 # --- Agent loop ---
 MAX_TOOL_HOPS = int(os.environ.get("MAX_TOOL_HOPS", "3"))
+# "simple" = always similarity-search then answer (no LLM tool XML).
+# "tool" = legacy loop where the model emits <tool_call>retrieve</tool_call>.
+RAG_AGENT_MODE = os.environ.get("RAG_AGENT_MODE", "simple").strip().lower()

@@ -1,6 +1,7 @@
 """
-Tool-calling loop: the model may request retrieval via XML tags, up to MAX_TOOL_HOPS,
-then answers with citations grounded in returned chunks.
+RAG chat: default path always retrieves from Qdrant once, then asks the LLM.
+
+Optional legacy mode lets the model request extra retrieval steps via XML tool tags.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import httpx
 
 from rag.config import (
     MAX_TOOL_HOPS,
+    RAG_AGENT_MODE,
     RAG_LLM_MAX_TOKENS,
     RAG_TOOL_CONTEXT_CHARS,
     RETRIEVE_TOP_K,
@@ -128,11 +130,55 @@ _TOOL_RE = re.compile(
 )
 
 
+def run_rag_simple(user_question: str) -> dict[str, Any]:
+    """
+    Fixed pipeline: embedding similarity search on the full user question, then one LLM call.
+    No tool XML from the model.
+    """
+    q = user_question.strip()
+    ret = _retrieve_dispatch(q, top_k=RETRIEVE_TOP_K)
+    hits = ret.get("hits") if isinstance(ret.get("hits"), list) else []
+    contexts: list[dict[str, Any]] = [
+        h for h in hits if isinstance(h, dict)
+    ]
+    answer = generate_answer_only(q, contexts)
+    transcript: list[dict[str, Any]] = [
+        {
+            "role": "retrieve",
+            "query": ret.get("query"),
+            "expanded_query": ret.get("expanded_query"),
+            "n_hits": len(contexts),
+        },
+        {"role": "assistant", "content": answer},
+    ]
+    return {
+        "answer": answer,
+        "transcript": transcript,
+        "tool_hops": 1,
+        "retrieve_meta": {
+            "query": ret.get("query"),
+            "expanded_query": ret.get("expanded_query"),
+            "domain_guess": ret.get("domain_guess"),
+            "hybrid": ret.get("hybrid"),
+            "n_hits": len(contexts),
+        },
+    }
+
+
 def run_agent(user_question: str) -> dict[str, Any]:
     """
-    Run retrieval-augmented generation with up to MAX_TOOL_HOPS retrieve calls.
-    Returns assistant text plus transcript for debugging.
+    Run retrieval-augmented generation.
+
+    Default (``RAG_AGENT_MODE=simple``): retrieve once from Qdrant using the user
+    question, then generate an answer.
+
+    Legacy (``RAG_AGENT_MODE=tool``): LLM may request further retrieval via XML tags,
+    up to MAX_TOOL_HOPS rounds.
     """
+    mode = RAG_AGENT_MODE if RAG_AGENT_MODE in ("simple", "tool") else "simple"
+    if mode == "simple":
+        return run_rag_simple(user_question)
+
     messages: list[dict[str, str]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_question},
